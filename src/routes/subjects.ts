@@ -1,4 +1,3 @@
-// src/routes/subjects.ts
 import { and, desc, eq, getTableColumns, ilike, or, sql } from "drizzle-orm";
 import express from "express";
 import { departments, subjects } from "../db/schema/app.js";
@@ -18,9 +17,14 @@ router.get("/", async (req, res) => {
 
         const filterCondition = [];
 
+        //Escape LIKE wildcards in user input
+        function escapeLikePattern(str: string): string {
+            return str.replace(/[\\%_]/g, '\\$&');
+        }
+
         // Jika search ada, cari berdasarkan nama atau kode subjek
         if (search) {
-            const searchTerm = `%${String(search)}%`;
+            const searchTerm = `%${escapeLikePattern(String(search))}%`;
             filterCondition.push(
                 or(
                     ilike(subjects.name, searchTerm),
@@ -31,7 +35,7 @@ router.get("/", async (req, res) => {
 
         // Jika filter department ada, cari berdasarkan nama departemen
         if (department) {
-            filterCondition.push(ilike(departments.name, `%${String(department)}%`));
+            filterCondition.push(ilike(departments.name, `%${escapeLikePattern(String(department))}%`));
         }
 
         const whereClause = filterCondition.length > 0 ? and(...filterCondition) : undefined;
