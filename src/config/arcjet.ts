@@ -1,15 +1,13 @@
 import arcjet, { shield, detectBot, slidingWindow } from "@arcjet/node";
 
-if (!process.env.ARCJET_KEY && process.env.NODE_ENV === 'test') {
+if (!process.env.ARCJET_KEY && process.env.NODE_ENV !== 'test') {
     throw new Error('ARCJET_KEY env is required');
 }
 
-
-
-const aj = arcjet({
-    key: process.env.ARCJET_KEY!,
+const aj = process.env.ARCJET_KEY ? arcjet({
+    key: process.env.ARCJET_KEY,
     rules: [
-        // Shield protects your app from common attacks e.g. SQL injection
+        shield({ mode: "LIVE" }),
         detectBot({
             mode: "LIVE",
             allow: [
@@ -23,6 +21,6 @@ const aj = arcjet({
             max: 5,
         })
     ],
-});
+}) : null as any;
 
 export default aj;

@@ -5,6 +5,7 @@ import cors from 'cors'
 import securityMiddleware from './middleware/security.js';
 
 const app = express();
+app.set('trust proxy', 1); // Document/configure trust proxy for rate limiter req.ip
 const PORT = 8000;
 
 // Validate FRONTEND_URL
@@ -17,13 +18,13 @@ if (!frontendUrl && isProduction) {
 
 app.use(express.json());
 
-app.use(securityMiddleware);
-
 app.use(cors({
   origin: frontendUrl || false, // Explicitly set to false if undefined to prevent reflecting request origins
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }))
+
+app.use(securityMiddleware);
 
 app.use('/api/subjects', subjectRouter);
 

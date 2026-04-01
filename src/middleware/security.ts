@@ -42,7 +42,7 @@ const securityMiddleware = async (req: Request, res: Response, next: NextFunctio
             headers: req.headers,
             method: req.method,
             url: req.originalUrl ?? req.url,
-            socket: { remoteAddress: req.socket.remoteAddress ?? req.ip ?? '0.0.0.0' }
+            socket: { remoteAddress: req.ip ?? req.socket.remoteAddress ?? '0.0.0.0' }
         }
 
         const decision = await client.protect(arjcetRequest);
@@ -56,7 +56,12 @@ const securityMiddleware = async (req: Request, res: Response, next: NextFunctio
         }
 
         if (decision.isDenied() && decision.reason.isRateLimit()) {
-            return res.status(403).json({ error: 'Too many requests', message });
+            const resetTime = (decision.reason as any).resetTime;
+            if (resetTime instanceof Date) {
+                const resetSeconds = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
+                res.setHeader('Retry-After', Math.max(1, resetSeconds).toString());
+            }
+            return res.status(429).json({ error: 'Too many requests', message });
         }
 
         next();
