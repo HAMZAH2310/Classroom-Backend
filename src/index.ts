@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import subjectRouter from './routes/subjects.js'; // Import router Anda
 import cors from 'cors'
+import securityMiddleware from './middleware/security.js';
 
 const app = express();
 const PORT = 8000;
@@ -15,6 +16,8 @@ if (!frontendUrl && isProduction) {
 }
 
 app.use(express.json());
+
+app.use(securityMiddleware);
 
 app.use(cors({
   origin: frontendUrl || false, // Explicitly set to false if undefined to prevent reflecting request origins
