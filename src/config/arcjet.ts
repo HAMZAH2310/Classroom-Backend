@@ -15,11 +15,6 @@ const aj = process.env.ARCJET_KEY ? arcjet({
                 "CATEGORY:PREVIEW",
             ],
         }),
-        slidingWindow({
-            mode: 'LIVE',
-            interval: '2s',
-            max: 5,
-        })
     ],
 }) : null as any;
 

@@ -1,11 +1,13 @@
 import type { NextFunction, Request, Response } from "express";
 import aj from '../config/arcjet.js'
-import { slidingWindow, type ArcjetNodeRequest, type ArcjetRequest } from "@arcjet/node";
+import { slidingWindow, type ArcjetNodeRequest } from "@arcjet/node";
 
 const securityMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     if (process.env.NODE_ENV === 'test') return next();
 
     try {
+        // NOTE: This middleware must be mounted AFTER authentication to identify user roles.
+        // req.user logic depends on auth middleware.
         const role: RateLimitRole = req.user?.role ?? 'guest';
 
         let limit: number;
@@ -38,14 +40,14 @@ const securityMiddleware = async (req: Request, res: Response, next: NextFunctio
             })
         )
 
-        const arjcetRequest: ArcjetNodeRequest = {
+        const arcjetRequest: ArcjetNodeRequest = {
             headers: req.headers,
             method: req.method,
             url: req.originalUrl ?? req.url,
             socket: { remoteAddress: req.ip ?? req.socket.remoteAddress ?? '0.0.0.0' }
         }
 
-        const decision = await client.protect(arjcetRequest);
+        const decision = await client.protect(arcjetRequest);
 
         if (decision.isDenied() && decision.reason.isBot()) {
             return res.status(403).json({ error: 'Forbidden', message: 'Automated request are not allowed' });
@@ -56,7 +58,8 @@ const securityMiddleware = async (req: Request, res: Response, next: NextFunctio
         }
 
         if (decision.isDenied() && decision.reason.isRateLimit()) {
-            const resetTime = (decision.reason as any).resetTime;
+            const reason = decision.reason as { resetTime?: Date };
+            const resetTime = reason.resetTime;
             if (resetTime instanceof Date) {
                 const resetSeconds = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
                 res.setHeader('Retry-After', Math.max(1, resetSeconds).toString());
@@ -67,7 +70,7 @@ const securityMiddleware = async (req: Request, res: Response, next: NextFunctio
         next();
 
     } catch (e) {
-        console.log(e);
+        console.error("security middleware error:", e);
         return res.status(500).json({ message: "Internal server error" });
     }
 }
