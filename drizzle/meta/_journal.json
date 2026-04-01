@@ -15,6 +15,13 @@
       "when": 1775029471077,
       "tag": "0001_amused_malcolm_colcord",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775033122611,
+      "tag": "0002_mean_shinobi_shaw",
+      "breakpoints": true
     }
   ]
 }
