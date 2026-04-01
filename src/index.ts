@@ -2,8 +2,10 @@ import 'dotenv/config';
 import express from 'express';
 import subjectRouter from './routes/subjects.js'; // Import router Anda
 import cors from 'cors'
+import securityMiddleware from './middleware/security.js';
 
 const app = express();
+app.set('trust proxy', 1); // Document/configure trust proxy for rate limiter req.ip
 const PORT = 8000;
 
 // Validate FRONTEND_URL
@@ -21,6 +23,8 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }))
+
+app.use(securityMiddleware);
 
 app.use('/api/subjects', subjectRouter);
 
