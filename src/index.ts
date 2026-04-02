@@ -3,14 +3,14 @@ AgentAPI.config();
 
 import 'dotenv/config';
 import express from 'express';
-import subjectRouter from './routes/subjects.js'; // Import router Anda
+import subjectRouter from './routes/subjects.js';
 import cors from 'cors'
 import securityMiddleware from './middleware/security.js';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
 
 const app = express();
-app.set('trust proxy', 1); // Document/configure trust proxy for rate limiter req.ip
+app.set('trust proxy', 1);
 const PORT = 8000;
 
 // Validate FRONTEND_URL

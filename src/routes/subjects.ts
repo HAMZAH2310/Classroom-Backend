@@ -1,16 +1,14 @@
 import { and, desc, eq, getTableColumns, ilike, or, sql } from "drizzle-orm";
 import express from "express";
-import { departments, subjects } from "../db/schema/app.js";
-import { db } from "../db/db.js";
+import { departments, subjects } from "../db/index.js";
+import { db } from "../db/index.js";
 
 const router = express.Router();
 
-// Get all subjects with optional search, filtering and pagination
 router.get("/", async (req, res) => {
     try {
         const { search, department, page = "1", limit = "10" } = req.query;
 
-        // Pastikan page dan limit adalah angka valid, jika tidak default ke 1 dan 10
         const currentPage = Math.max(1, Number(page) || 1);
         const limitPerPage = Math.max(1, Number(limit) || 10);
         const offset = (currentPage - 1) * limitPerPage;
