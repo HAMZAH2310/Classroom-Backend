@@ -3,6 +3,8 @@ import express from 'express';
 import subjectRouter from './routes/subjects.js'; // Import router Anda
 import cors from 'cors'
 import securityMiddleware from './middleware/security.js';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './lib/auth.js';
 
 const app = express();
 app.set('trust proxy', 1); // Document/configure trust proxy for rate limiter req.ip
@@ -18,11 +20,14 @@ if (!frontendUrl && isProduction) {
 
 app.use(express.json());
 
+
 app.use(cors({
   origin: frontendUrl || false, // Explicitly set to false if undefined to prevent reflecting request origins
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }))
+
+app.all('/api/auth/{*any}', toNodeHandler(auth));
 
 app.use(securityMiddleware);
 
