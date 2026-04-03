@@ -4,10 +4,12 @@ AgentAPI.config();
 import 'dotenv/config';
 import express from 'express';
 import subjectRouter from './routes/subjects.js';
+import classesRouter from './routes/classes.js';
 import cors from 'cors'
 import securityMiddleware from './middleware/security.js';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
+import userRoles from './routes/users.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -35,6 +37,8 @@ app.all('/api/auth/{*any}', toNodeHandler(auth));
 app.use(securityMiddleware);
 
 app.use('/api/subjects', subjectRouter);
+app.use('/api/classes', classesRouter);
+app.use('/api/users', userRoles)
 
 app.get('/', (req, res) => {
   res.send('API Classroom is running');
