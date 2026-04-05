@@ -9,7 +9,7 @@ const router = express.Router();
 // Get all classes with optional search, subject, teacher filters, and pagination
 router.get("/", async (req, res) => {
     try {
-        const { search, subject, teacher, page = 1, limit = 10 } = req.query;
+        const { search, subject, teacher, status, page = 1, limit = 10 } = req.query;
 
         const currentPage = Math.max(1, +page);
         const limitPerPage = Math.max(1, +limit);
@@ -32,6 +32,10 @@ router.get("/", async (req, res) => {
 
         if (teacher) {
             filterConditions.push(ilike(user.name, `%${teacher}%`));
+        }
+
+        if (status) {
+            filterConditions.push(eq(classes.status, status as any));
         }
 
         const whereClause =
@@ -149,10 +153,104 @@ router.get("/:id", async (req, res) => {
             return res.status(404).json({ error: "Class not found" });
         }
 
-        res.status(200).json({ data: classDetails });
+        // Get enrollment count
+        const [enrollmentCount] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(enrollments)
+            .where(eq(enrollments.classId, classId));
+
+        res.status(200).json({
+            data: {
+                ...classDetails,
+                enrollmentCount: enrollmentCount?.count ?? 0,
+            }
+        });
     } catch (error) {
         console.error("GET /classes/:id error:", error);
         res.status(500).json({ error: "Failed to fetch class details" });
+    }
+});
+
+// Update class
+router.put("/:id", async (req, res) => {
+    try {
+        const classId = Number(req.params.id);
+
+        if (!Number.isFinite(classId)) {
+            return res.status(400).json({ error: "Invalid class id" });
+        }
+
+        const {
+            name,
+            teacherId,
+            subjectId,
+            capacity,
+            description,
+            status,
+            bannerUrl,
+            bannerCldPubId,
+        } = req.body;
+
+        const [updated] = await db
+            .update(classes)
+            .set({
+                name,
+                teacherId,
+                subjectId,
+                capacity,
+                description,
+                status,
+                bannerUrl,
+                bannerCldPubId,
+            })
+            .where(eq(classes.id, classId))
+            .returning();
+
+        if (!updated) {
+            return res.status(404).json({ error: "Class not found" });
+        }
+
+        res.status(200).json({ data: updated });
+    } catch (error) {
+        console.error("PUT /classes/:id error:", error);
+        res.status(500).json({ error: "Failed to update class" });
+    }
+});
+
+// Delete class (block if has enrollments)
+router.delete("/:id", async (req, res) => {
+    try {
+        const classId = Number(req.params.id);
+
+        if (!Number.isFinite(classId)) {
+            return res.status(400).json({ error: "Invalid class id" });
+        }
+
+        // Check for existing enrollments
+        const [enrollmentCount] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(enrollments)
+            .where(eq(enrollments.classId, classId));
+
+        if ((enrollmentCount?.count ?? 0) > 0) {
+            return res.status(409).json({
+                error: "Cannot delete class with enrolled students. Remove all enrollments first.",
+            });
+        }
+
+        const [deleted] = await db
+            .delete(classes)
+            .where(eq(classes.id, classId))
+            .returning({ id: classes.id });
+
+        if (!deleted) {
+            return res.status(404).json({ error: "Class not found" });
+        }
+
+        res.status(200).json({ data: deleted });
+    } catch (error) {
+        console.error("DELETE /classes/:id error:", error);
+        res.status(500).json({ error: "Failed to delete class" });
     }
 });
 
@@ -225,11 +323,14 @@ router.get("/:id/users", async (req, res) => {
                     .limit(limitPerPage)
                     .offset(offset)
                 : await db
-                    .select(baseSelect)
+                    .select({
+                        ...baseSelect,
+                        enrollmentId: enrollments.id
+                    })
                     .from(user)
                     .leftJoin(enrollments, eq(user.id, enrollments.studentId))
                     .where(and(eq(user.role, role), eq(enrollments.classId, classId)))
-                    .groupBy(...groupByFields)
+                    .groupBy(enrollments.id, ...groupByFields)
                     .orderBy(desc(user.createdAt))
                     .limit(limitPerPage)
                     .offset(offset);

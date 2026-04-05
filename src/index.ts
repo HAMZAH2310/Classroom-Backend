@@ -5,6 +5,9 @@ import 'dotenv/config';
 import express from 'express';
 import subjectRouter from './routes/subjects.js';
 import classesRouter from './routes/classes.js';
+import departmentsRouter from './routes/departments.js';
+import enrollmentsRouter from './routes/enrollments.js';
+import dashboardRouter from './routes/dashboard.js';
 import cors from 'cors'
 import securityMiddleware from './middleware/security.js';
 import { toNodeHandler } from 'better-auth/node';
@@ -50,7 +53,10 @@ app.use(securityMiddleware);
 
 app.use('/api/subjects', subjectRouter);
 app.use('/api/classes', classesRouter);
-app.use('/api/users', userRoles)
+app.use('/api/users', userRoles);
+app.use('/api/departments', departmentsRouter);
+app.use('/api/enrollments', enrollmentsRouter);
+app.use('/api/dashboard', dashboardRouter);
 
 app.get('/', (req, res) => {
   res.send('API Classroom is running');
